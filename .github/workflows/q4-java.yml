@@ -1,5 +1,8 @@
 name: Java
 
+on:
+  workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,3 +22,24 @@ jobs:
 
       - name: Build
         run: mvn -B compile
+
+      - name: Testes unitários
+        run: mvn -B test
+
+      - name: Construir a imagem Docker
+        run: docker build -t api-java .
+
+      - name: Rodar a imagem Docker
+        run: docker run -d --name api-java -p 8080:8080 api-java
+
+      - name: Verificar se a API subiu
+        run: |
+          for _ in $(seq 1 20); do
+            curl -fs http://localhost:8080/healthy && exit 0
+            sleep 3
+          done
+          exit 1
+
+      - name: Logs do contêiner
+        if: failure()
+        run: docker logs api-java
